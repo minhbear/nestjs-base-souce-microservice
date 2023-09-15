@@ -1,0 +1,71 @@
+version: "3"
+
+networks:
+  nestjs-dockerized-networks:
+    driver: bridge
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: 'rabbitmq'
+    networks:
+      - nestjs-dockerized-networks
+    ports:
+      - 5673:5672
+      - 15673:15672
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\RabbitMQ\Data\:/var/lib/rabbitmq/
+      - C:\Users\TaiDinh\Desktop\Demo\RabbitMQ\Log\:/var/log/rabbitmq
+
+  postgres:
+    image: postgres:15.1
+    networks:
+      - nestjs-dockerized-networks
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\Database\Postgresql:/var/lib/postgresql/data
+    env_file:
+      - ./api/docker.env
+
+  pgadmin:
+    image: dpage/pgadmin4:6.18
+    networks:
+      - nestjs-dockerized-networks
+    ports:
+      - "8080:80"
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\Database\PGAdmin:/var/lib/pgadmin
+    env_file:
+      - ./api/docker.env
+
+  nestjs-api:
+    working_dir: /nestjs-dockerized-api
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\File\:/nestjs-dockerized-api/uploadedFiles
+    env_file:
+      - ./api/.env
+    stdin_open: true
+    tty: true
+    ports:
+      - "5000:3000"
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - nestjs-dockerized-networks
+
+  worker:
+    build:
+      context: ./
+      target: dev
+      dockerfile: Dockerfile.worker
+    depends_on:
+      - rabbitmq
+    command: sh -c '/bin/wait-for-it.sh rabbitmq:5672 --timeout=30 -- node consumer.js'
+    environment:
+      NODE_ENV: production
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - nestjs-dockerized-networks

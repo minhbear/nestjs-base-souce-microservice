@@ -1,0 +1,5 @@
+./api/node_modules
+./api/dist
+./api/.git
+./api/.env
+./api/docker.env

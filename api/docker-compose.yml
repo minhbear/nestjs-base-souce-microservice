@@ -1,0 +1,42 @@
+version: "3"
+
+networks:
+  nestjs-dockerized-networks:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:15.1
+    networks:
+      - nestjs-dockerized-networks
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\PG-DB:/var/lib/postgresql/data
+    env_file:
+      - docker.env
+
+  pgadmin:
+    image: dpage/pgadmin4:6.18
+    networks:
+      - nestjs-dockerized-networks
+    ports:
+      - "8080:80"
+    env_file:
+      - docker.env
+
+  nestjs-api:
+    working_dir: /nestjs-dockerized-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    volumes:
+      - C:\Users\TaiDinh\Desktop\Demo\File:/nestjs-dockerized-api/uploadedFiles
+    ports:
+      - "5000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - nestjs-dockerized-networks
